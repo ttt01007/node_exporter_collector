@@ -19,7 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.json.JSONObject;
+//import org.json.JSONObject;
 
 public class ExporterInfo extends AbstractJavaSamplerClient {
     private static final Logger log = LogManager.getLogger(ExporterInfo.class);
@@ -44,9 +44,7 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
         try {
             String threadName = Thread.currentThread().getName();
             if (threadName.contains("setUp Thread Group")) {
-                this.ips = context.getParameter("ip").contains(",")
-                        ? context.getParameter("ip").split(",")
-                        : new String[]{context.getParameter("ip")};
+                this.ips = context.getParameter("ip").contains(",") ? context.getParameter("ip").split(",") : new String[]{context.getParameter("ip")};
                 this.taskName = context.getParameter("taskName");
 
                 String url = "jdbc:mysql://39.107.95.220:3306/exporterinfo?useUnicode=true&characterEncoding=UTF-8";
@@ -199,7 +197,7 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
             // 计算 IO 每秒次数和网络每秒流量
             metrics.ioPerSecond = Math.round(metrics.ioTime * 100.0) / 100.0; // IO 保存小数两位
             metrics.networkBytesPerSecond = (metrics.networkReceive + metrics.networkTransmit) / (1024 * 1024); // 转换为 Mb/s
-            metrics.networkBytesPerSecond = Math.round(metrics.networkBytesPerSecond * 100.0) / 100.0
+            metrics.networkBytesPerSecond = Math.round(metrics.networkBytesPerSecond * 100.0) / 100.0;
         } catch (Exception e) {
             log.error("从 node_exporter 获取数据失败", e);
         }
@@ -221,9 +219,7 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
     @Override
     public void setupTest(JavaSamplerContext context) {
         super.setupTest(context);
-        this.ips = context.getParameter("ip").contains(",")
-                ? context.getParameter("ip").split(",")
-                : new String[]{context.getParameter("ip")};
+        this.ips = context.getParameter("ip").contains(",") ? context.getParameter("ip").split(",") : new String[]{context.getParameter("ip")};
         this.taskName = context.getParameter("taskName");
     }
 
@@ -231,3 +227,4 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
     public void teardownTest(JavaSamplerContext context) {
         // 将 teardownTest 留空，因为所有清理逻辑都移到了 runTest 中
     }
+}
