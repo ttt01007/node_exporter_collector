@@ -6,20 +6,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.CallableStatement;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-//import org.json.JSONObject;
 
 public class ExporterInfo extends AbstractJavaSamplerClient {
     private static final Logger log = LogManager.getLogger(ExporterInfo.class);
@@ -29,6 +25,32 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
     private String[] ips;
     private String taskName;
 
+    // 定义数据库连接属性
+    private static String dbUrl;
+    private static String dbUser;
+    private static String dbPassword;
+
+    // 静态块用于加载 properties 文件
+    static {
+        try (InputStream input = ExporterInfo.class.getClassLoader().getResourceAsStream("db.properties")) {
+            if (input == null) {
+                log.error("Sorry, unable to find db.properties");
+                throw new RuntimeException("Unable to find db.properties");
+            }
+
+            Properties prop = new Properties();
+            prop.load(input);
+
+            dbUrl = prop.getProperty("db.url");
+            dbUser = prop.getProperty("db.user");
+            dbPassword = prop.getProperty("db.password");
+
+        } catch (Exception ex) {
+            log.error("Error loading properties file", ex);
+        }
+    }
+
+    @Override
     public Arguments getDefaultParameters() {
         Arguments arguments = new Arguments();
         arguments.addArgument("taskName", "123");
@@ -43,15 +65,12 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
 
         try {
             String threadName = Thread.currentThread().getName();
-            if (threadName.contains("setUp Thread Group")) {
+            if (threadName.contains("setUp")) {
                 this.ips = context.getParameter("ip").contains(",") ? context.getParameter("ip").split(",") : new String[]{context.getParameter("ip")};
                 this.taskName = context.getParameter("taskName");
-
-                String url = "jdbc:mysql://39.107.95.220:3306/exporterinfo?useUnicode=true&characterEncoding=UTF-8";
-                String user = "root";
-                String password = "123456";
-
-                connection = DriverManager.getConnection(url, user, password);
+                log.info(dbUrl+"----------------------------------");
+                // 使用 properties 文件中的配置
+                connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
                 log.info("MySQL 连接已打开");
 
                 // 删除旧的记录
@@ -102,11 +121,14 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
                 result.setResponseMessage("MySQL 连接已打开");
                 result.setResponseCodeOK();
                 result.setSuccessful(true); // 确保这个请求被视为成功
-            } else if (threadName.contains("tearDown Thread Group")) {
+            } else if (threadName.contains("tearDown")) {
                 // 停止定时任务
                 if (scheduler != null && !scheduler.isShutdown()) {
                     scheduler.shutdownNow();
                 }
+
+                //防止脚本只运行一次，结束太快
+                Thread.sleep(5000);
 
                 // 调用存储过程 UpdateServerSummary
                 if (connection != null && !connection.isClosed()) {
@@ -147,6 +169,8 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
             result.setResponseCode("500");
             result.setSuccessful(false);
             result.sampleEnd();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
 
         return result;
@@ -194,10 +218,10 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
             metrics.memoryUsage = (1 - (metrics.memoryAvailable / metrics.memoryTotal)) * 100;
             metrics.memoryUsage = Math.round(metrics.memoryUsage * 100.0) / 100.0; // 百分比保存小数两位
 
-            // 计算 IO 每秒次数和网络每秒流量
             metrics.ioPerSecond = Math.round(metrics.ioTime * 100.0) / 100.0; // IO 保存小数两位
             metrics.networkBytesPerSecond = (metrics.networkReceive + metrics.networkTransmit) / (1024 * 1024); // 转换为 Mb/s
-            metrics.networkBytesPerSecond = Math.round(metrics.networkBytesPerSecond * 100.0) / 100.0;
+            metrics.networkBytesPerSecond = Math.round(metrics.networkBytesPerSecond * 100.0) / 100.0; // 保存小数两位
+
         } catch (Exception e) {
             log.error("从 node_exporter 获取数据失败", e);
         }

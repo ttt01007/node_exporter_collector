@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="jmeter_plugin:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/jmeter_plugin_jar</output-path>
+    <output-path>$PROJECT_DIR$/../jmeter/apache-jmeter-5.0/lib/ext</output-path>
     <root id="archive" name="jmeter_plugin.jar">
       <element id="module-output" name="jmeter_plugin" />
       <element id="extracted-dir" path="$PROJECT_DIR$/jmeter_plugin/lib/ApacheJMeter_core.jar" path-in-jar="/" />
