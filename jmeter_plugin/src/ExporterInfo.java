@@ -107,6 +107,9 @@ public class ExporterInfo extends AbstractJavaSamplerClient {
 
                                     pstmt.executeUpdate();
                                     log.info("插入一条记录到 server_detail_info 表中, id: " + id);
+                                    Thread.sleep(1000);
+                                } catch (InterruptedException e) {
+                                    throw new RuntimeException(e);
                                 }
                             }
                         }
